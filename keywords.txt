@@ -22,9 +22,12 @@ LowsideCurrentSense	KEYWORD1
 CurrentSense	KEYWORD1   
 Commander	KEYWORD1   
 StepDirListener	KEYWORD1   
-GenericCurrentSense	KEYWORD1   
-GenericSensor	KEYWORD1   
-SimpleFOCDebug	KEYWORD1   
+GenericCurrentSense	KEYWORD1
+GenericSensor	KEYWORD1
+SimpleFOCDebug	KEYWORD1
+MotorParameterEstimator	KEYWORD1
+MotorParameters_s	KEYWORD1
+RLSCovariance_s	KEYWORD1
 
 initFOC	KEYWORD2
 loopFOC	KEYWORD2
@@ -70,6 +73,13 @@ PhaseCurrent_s	KEYWORD1
 linkDriver	KEYWORD2
 linkSensor	KEYWORD2
 linkCurrentSense	KEYWORD2
+linkParameterEstimator	KEYWORD2
+getLd	KEYWORD2
+getLq	KEYWORD2
+getFluxLinkage	KEYWORD2
+getParameters	KEYWORD2
+isConverged	KEYWORD2
+getEstimationError	KEYWORD2
 handleA	KEYWORD2
 handleB	KEYWORD2
 handleIndex	KEYWORD2
@@ -138,6 +148,13 @@ decimal_places	KEYWORD2
 phase_resistance	KEYWORD2
 phase_inductance	KEYWORD2
 modulation_centered	KEYWORD2
+Ld	KEYWORD2
+Lq	KEYWORD2
+flux_linkage	KEYWORD2
+forgetting_factor	KEYWORD2
+min_velocity	KEYWORD2
+min_current	KEYWORD2
+parameter_estimator	KEYWORD2
 
 
 
@@ -250,3 +267,9 @@ _MON_CURR_Q	LITERAL1
 _MON_CURR_D	LITERAL1
 _MON_VEL	LITERAL1
 _MON_ANGLE	LITERAL1
+
+DEF_RLS_FORGETTING_FACTOR	LITERAL1
+DEF_RLS_INITIAL_COVARIANCE	LITERAL1
+DEF_RLS_MIN_VELOCITY	LITERAL1
+DEF_RLS_MIN_CURRENT	LITERAL1
+DEF_RLS_ESTIMATE_FILTER_TF	LITERAL1

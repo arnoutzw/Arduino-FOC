@@ -11,6 +11,9 @@
 #include "../pid.h"
 #include "../lowpass_filter.h"
 
+// Forward declaration
+class MotorParameterEstimator;
+
 
 // monitoring bitmap
 #define _MON_TARGET 0b1000000 // monitor target value
@@ -92,11 +95,18 @@ class FOCMotor
     void linkSensor(Sensor* sensor);
 
     /**
-     * Function linking a motor and current sensing 
-     * 
+     * Function linking a motor and current sensing
+     *
      * @param current_sense CurrentSense class wrapper for the FOC algorihtm to read the motor current measurements
      */
     void linkCurrentSense(CurrentSense* current_sense);
+
+    /**
+     * Function linking a motor and parameter estimator
+     *
+     * @param estimator MotorParameterEstimator class for online estimation of Ld, Lq, flux_linkage
+     */
+    void linkParameterEstimator(MotorParameterEstimator* estimator);
 
 
     /**
@@ -181,7 +191,10 @@ class FOCMotor
     float	phase_resistance; //!< motor phase resistance
     int pole_pairs;//!< motor pole pairs number
     float KV_rating; //!< motor KV rating
-    float	phase_inductance; //!< motor phase inductance
+    float	phase_inductance; //!< motor phase inductance (average of Ld and Lq)
+    float Ld; //!< d-axis inductance [H]
+    float Lq; //!< q-axis inductance [H]
+    float flux_linkage; //!< permanent magnet flux linkage [Wb]
 
     // limiting variables
     float voltage_limit; //!< Voltage limiting variable - global limit
@@ -247,10 +260,14 @@ class FOCMotor
       * - HallSensor
     */
     Sensor* sensor; 
-    /** 
+    /**
       * CurrentSense link
     */
-    CurrentSense* current_sense; 
+    CurrentSense* current_sense;
+    /**
+      * MotorParameterEstimator link for online parameter estimation
+    */
+    MotorParameterEstimator* parameter_estimator; 
 
     // monitoring functions
     Print* monitor_port; //!< Serial terminal variable if provided

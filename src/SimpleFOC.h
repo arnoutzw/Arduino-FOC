@@ -116,5 +116,6 @@ void loop() {
 #include "communication/Commander.h"
 #include "communication/StepDirListener.h"
 #include "communication/SimpleFOCDebug.h"
+#include "common/base_classes/MotorParameterEstimator.h"
 
 #endif

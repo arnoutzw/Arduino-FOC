@@ -1,5 +1,6 @@
 #include "BLDCMotor.h"
 #include "./communication/SimpleFOCDebug.h"
+#include "common/simulink_foc/SimulinkFOC.h"
 
 
 // see https://www.youtube.com/watch?v=InzXA7mWBWE Slide 5
@@ -335,18 +336,29 @@ int BLDCMotor::absoluteZeroSearch() {
 // Iterative function looping FOC algorithm, setting Uq on the Motor
 // The faster it can be run the better
 void BLDCMotor::loopFOC() {
+  // Use Simulink FOC if enabled
+  if (use_simulink_foc_ && simulink_foc_adapter_.isInitialized()) {
+    simulink_foc_adapter_.runLoopFOC();
+    // Update phase voltages from Simulink FOC outputs
+    Ua = simulink_foc_adapter_.getUa();
+    Ub = simulink_foc_adapter_.getUb();
+    Uc = simulink_foc_adapter_.getUc();
+    return;
+  }
+
+  // Native FOC implementation follows
   // update sensor - do this even in open-loop mode, as user may be switching between modes and we could lose track
   //                 of full rotations otherwise.
   if (sensor) sensor->update();
 
   // if open-loop do nothing
   if( controller==MotionControlType::angle_openloop || controller==MotionControlType::velocity_openloop ) return;
-  
+
   // if disabled do nothing
   if(!enabled) return;
 
   // Needs the update() to be called first
-  // This function will not have numerical issues because it uses Sensor::getMechanicalAngle() 
+  // This function will not have numerical issues because it uses Sensor::getMechanicalAngle()
   // which is in range 0-2PI
   electrical_angle = electricalAngle();
   switch (torque_controller) {
@@ -397,7 +409,21 @@ void BLDCMotor::move(float new_target) {
 
   // set internal target variable
   if(_isset(new_target)) target = new_target;
-  
+
+  // Use Simulink FOC if enabled
+  if (use_simulink_foc_ && simulink_foc_adapter_.isInitialized()) {
+    simulink_foc_adapter_.runMove(target);
+    // Update phase voltages for open-loop modes
+    if (controller == MotionControlType::angle_openloop ||
+        controller == MotionControlType::velocity_openloop) {
+      Ua = simulink_foc_adapter_.getUa();
+      Ub = simulink_foc_adapter_.getUb();
+      Uc = simulink_foc_adapter_.getUc();
+    }
+    return;
+  }
+
+  // Native FOC implementation follows
   // downsampling (optional)
   if(motion_cnt++ < motion_downsample) return;
   motion_cnt = 0;
@@ -682,4 +708,32 @@ float BLDCMotor::angleOpenloop(float target_angle){
   open_loop_timestamp = now_us;
 
   return Uq;
+}
+
+
+// ============================================================================
+// Simulink FOC Integration
+// ============================================================================
+
+int BLDCMotor::enableSimulinkFOC() {
+  // Initialize the Simulink FOC adapter
+  int result = simulink_foc_adapter_.init(this, driver, sensor, current_sense);
+  if (result == 0) {
+    use_simulink_foc_ = true;
+    SIMPLEFOC_DEBUG("MOT: Simulink FOC enabled");
+  } else {
+    SIMPLEFOC_DEBUG("MOT: Simulink FOC init failed");
+  }
+  return result;
+}
+
+void BLDCMotor::disableSimulinkFOC() {
+  use_simulink_foc_ = false;
+  SIMPLEFOC_DEBUG("MOT: Simulink FOC disabled");
+}
+
+void BLDCMotor::syncSimulinkFOCParams() {
+  if (simulink_foc_adapter_.isInitialized()) {
+    simulink_foc_adapter_.syncParameters();
+  }
 }

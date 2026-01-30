@@ -117,4 +117,8 @@ void loop() {
 #include "communication/StepDirListener.h"
 #include "communication/SimpleFOCDebug.h"
 
+// Simulink code-generated FOC algorithm support
+#include "common/simulink_foc/SimulinkFOC.h"
+#include "common/simulink_foc/SimulinkFOCTypes.h"
+
 #endif

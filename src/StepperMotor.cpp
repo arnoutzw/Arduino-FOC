@@ -1,5 +1,6 @@
 #include "StepperMotor.h"
 #include "./communication/SimpleFOCDebug.h"
+#include "common/simulink_foc/SimulinkFOC.h"
 
 
 // StepperMotor(int pp)
@@ -294,7 +295,13 @@ int StepperMotor::absoluteZeroSearch() {
 // Iterative function looping FOC algorithm, setting Uq on the Motor
 // The faster it can be run the better
 void StepperMotor::loopFOC() {
-  
+  // Use Simulink FOC if enabled
+  if (use_simulink_foc_ && simulink_foc_adapter_.isInitialized()) {
+    simulink_foc_adapter_.runLoopFOC();
+    return;
+  }
+
+  // Native FOC implementation follows
   // update sensor - do this even in open-loop mode, as user may be switching between modes and we could lose track
   //                 of full rotations otherwise.
   if (sensor) sensor->update();
@@ -306,7 +313,7 @@ void StepperMotor::loopFOC() {
   if(!enabled) return;
 
   // Needs the update() to be called first
-  // This function will not have numerical issues because it uses Sensor::getMechanicalAngle() 
+  // This function will not have numerical issues because it uses Sensor::getMechanicalAngle()
   // which is in range 0-2PI
   electrical_angle = electricalAngle();
   switch (torque_controller) {
@@ -356,7 +363,14 @@ void StepperMotor::move(float new_target) {
 
   // set internal target variable
   if(_isset(new_target) ) target = new_target;
-  
+
+  // Use Simulink FOC if enabled
+  if (use_simulink_foc_ && simulink_foc_adapter_.isInitialized()) {
+    simulink_foc_adapter_.runMove(target);
+    return;
+  }
+
+  // Native FOC implementation follows
   // downsampling (optional)
   if(motion_cnt++ < motion_downsample) return;
   motion_cnt = 0;
@@ -539,4 +553,32 @@ float StepperMotor::angleOpenloop(float target_angle){
   open_loop_timestamp = now_us;
 
   return Uq;
+}
+
+
+// ============================================================================
+// Simulink FOC Integration
+// ============================================================================
+
+int StepperMotor::enableSimulinkFOC() {
+  // Initialize the Simulink FOC adapter
+  int result = simulink_foc_adapter_.init(this, driver, sensor, current_sense);
+  if (result == 0) {
+    use_simulink_foc_ = true;
+    SIMPLEFOC_DEBUG("MOT: Simulink FOC enabled");
+  } else {
+    SIMPLEFOC_DEBUG("MOT: Simulink FOC init failed");
+  }
+  return result;
+}
+
+void StepperMotor::disableSimulinkFOC() {
+  use_simulink_foc_ = false;
+  SIMPLEFOC_DEBUG("MOT: Simulink FOC disabled");
+}
+
+void StepperMotor::syncSimulinkFOCParams() {
+  if (simulink_foc_adapter_.isInitialized()) {
+    simulink_foc_adapter_.syncParameters();
+  }
 }

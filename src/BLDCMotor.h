@@ -9,9 +9,19 @@
 #include "common/foc_utils.h"
 #include "common/time_utils.h"
 #include "common/defaults.h"
+#include "common/simulink_foc/SimulinkFOCConfig.h"
+#include "common/simulink_foc/SimulinkFOCAdapter.h"
 
 /**
  BLDC motor class
+
+ Supports two FOC algorithm implementations:
+ 1. Native SimpleFOC algorithm (default)
+ 2. Simulink code-generated FOC algorithm (optional)
+
+ To use Simulink FOC:
+ - Call enableSimulinkFOC() after init()
+ - Or define SIMPLEFOC_USE_SIMULINK_FOC before including this header
 */
 class BLDCMotor: public FOCMotor
 {
@@ -90,9 +100,53 @@ class BLDCMotor: public FOCMotor
     int characteriseMotor(float voltage){
       return FOCMotor::characteriseMotor(voltage, 1.5f);
     }
-    
+
+    // ========================================================================
+    // Simulink FOC Integration
+    // ========================================================================
+
+    /**
+     * Enable Simulink code-generated FOC algorithm
+     * Call this after init() and before loopFOC()/move()
+     * @return 0 on success, non-zero on failure
+     */
+    int enableSimulinkFOC();
+
+    /**
+     * Disable Simulink FOC and revert to native algorithm
+     */
+    void disableSimulinkFOC();
+
+    /**
+     * Check if Simulink FOC is enabled
+     * @return true if Simulink FOC is active
+     */
+    bool isSimulinkFOCEnabled() const { return use_simulink_foc_; }
+
+    /**
+     * Synchronize current motor parameters to Simulink FOC component
+     * Call this after changing any motor parameters at runtime
+     */
+    void syncSimulinkFOCParams();
+
+    /**
+     * Get reference to the Simulink FOC adapter
+     * For advanced usage and debugging
+     */
+    SimulinkFOCAdapter& getSimulinkFOCAdapter() { return simulink_foc_adapter_; }
+
+    /**
+     * Get reference to the underlying SimulinkFOC component
+     * For advanced usage and debugging
+     */
+    SimulinkFOC& getSimulinkFOC() { return simulink_foc_adapter_.getFOC(); }
+
   private:
-    // FOC methods 
+    // Simulink FOC components
+    SimulinkFOCAdapter simulink_foc_adapter_;
+    bool use_simulink_foc_ = false;
+
+    // Native FOC implementation methods
 
     /** Sensor alignment to electrical 0 angle of the motor */
     int alignSensor();

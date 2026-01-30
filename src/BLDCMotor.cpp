@@ -1,5 +1,6 @@
 #include "BLDCMotor.h"
 #include "./communication/SimpleFOCDebug.h"
+#include "./common/base_classes/MotorParameterEstimator.h"
 
 
 // see https://www.youtube.com/watch?v=InzXA7mWBWE Slide 5
@@ -386,6 +387,23 @@ void BLDCMotor::loopFOC() {
 
   // set the phase voltage - FOC heart function :)
   setPhaseVoltage(voltage.q, voltage.d, electrical_angle);
+
+  // update parameter estimator if linked and we have FOC current control
+  if (parameter_estimator && torque_controller == TorqueControlType::foc_current) {
+    // calculate electrical velocity: omega_e = omega_m * pole_pairs
+    float omega_e = shaft_velocity * pole_pairs;
+    // update the estimator with current voltage and current measurements
+    if (parameter_estimator->update(voltage.d, voltage.q, current.d, current.q, omega_e)) {
+      // optionally update motor parameters from estimator
+      if (parameter_estimator->isConverged()) {
+        Ld = parameter_estimator->getLd();
+        Lq = parameter_estimator->getLq();
+        flux_linkage = parameter_estimator->getFluxLinkage();
+        // update average phase inductance
+        phase_inductance = (Ld + Lq) * 0.5f;
+      }
+    }
+  }
 }
 
 // Iterative function running outer loop of the FOC algorithm

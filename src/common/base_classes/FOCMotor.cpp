@@ -1,4 +1,5 @@
 #include "FOCMotor.h"
+#include "MotorParameterEstimator.h"
 #include "../../communication/SimpleFOCDebug.h"
 
 /**
@@ -37,13 +38,20 @@ FOCMotor::FOCMotor()
   Ualpha = 0;
   Ubeta = 0;
   
-  //monitor_port 
+  //monitor_port
   monitor_port = nullptr;
-  //sensor 
+  //sensor
   sensor_offset = 0.0f;
   sensor = nullptr;
-  //current sensor 
+  //current sensor
   current_sense = nullptr;
+  //parameter estimator
+  parameter_estimator = nullptr;
+
+  // motor parameters (Ld, Lq, flux_linkage)
+  Ld = NOT_SET;
+  Lq = NOT_SET;
+  flux_linkage = NOT_SET;
 }
 
 
@@ -59,6 +67,13 @@ void FOCMotor::linkSensor(Sensor* _sensor) {
 */
 void FOCMotor::linkCurrentSense(CurrentSense* _current_sense) {
   current_sense = _current_sense;
+}
+
+/**
+	MotorParameterEstimator linking method
+*/
+void FOCMotor::linkParameterEstimator(MotorParameterEstimator* _estimator) {
+  parameter_estimator = _estimator;
 }
 
 // shaft angle calculation
